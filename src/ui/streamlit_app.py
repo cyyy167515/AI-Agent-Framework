@@ -8,6 +8,7 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 import streamlit as st
+st.set_page_config(page_title="AI Agent Framework", layout="wide")
 from src.agents.react_agent import ReactAgent
 from src.graph.workflow import run_workflow
 from src.user.user_manager import UserManager
@@ -19,6 +20,8 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide",
 )
+
+
 
 st.title("🤖 AI Agent Framework")
 
@@ -50,12 +53,22 @@ def login_page():
             init_user_session(user)
             st.rerun()
 
+
 def init_user_session(user):
     """初始化用户会话数据"""
     st.session_state.current_user = user
     st.session_state.user_id = user.user_id
     st.session_state.conversation_store = ConversationStore(user.user_id)
+
+    # === 在这里插入你的代码 ===
+    # 如果有用户输入的 key，覆盖默认配置
+    if st.session_state.get("custom_api_key"):
+        from config import settings
+        settings.ZHIPU_API_KEY = st.session_state.custom_api_key
+
     st.session_state.agent = ReactAgent()
+    # =========================
+
     # 加载历史对话
     history = st.session_state.conversation_store.get_history()
     st.session_state.history = [{"role": m["role"], "content": m["content"]} for m in history]
@@ -67,6 +80,20 @@ if "current_user" not in st.session_state:
 
 # === 侧边栏 ===
 with st.sidebar:
+    st.header("️ API 设置")
+    st.markdown("请输入你的智谱 API 密钥以使用智能体：")
+
+    # 用户输入的密钥
+    user_api_key = st.text_input("ZHIPU_API_KEY", type="password")
+
+    # 如果有输入，保存到 session state
+    if user_api_key:
+        st.session_state.custom_api_key = user_api_key
+        st.success("密钥已保存")
+    else:
+        if "custom_api_key" not in st.session_state:
+            st.session_state.custom_api_key = None
+
     st.subheader("👤 用户信息")
     st.write(f"**用户名**: {st.session_state.current_user.username}")
     st.write(f"**用户 ID**: {st.session_state.user_id}")
